@@ -1,0 +1,614 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "sched-9am",
+      "name": "Schedule 9AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -6160,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 13 * * *"
+            }
+          ]
+        }
+      },
+      "id": "sched-1pm",
+      "name": "Schedule 1PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -6160,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 16 * * *"
+            }
+          ]
+        }
+      },
+      "id": "sched-4pm",
+      "name": "Schedule 4PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -6160,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 21 * * *"
+            }
+          ]
+        }
+      },
+      "id": "sched-9pm",
+      "name": "Schedule 9PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -6160,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pick RSS feed \u2014 rotate through full list, never repeat recently used\nconst gd = $getWorkflowStaticData('global');\nfunction safeLoad(k) { try { return JSON.parse(gd[k] || '[]'); } catch(e) { return []; } }\nlet usedFeeds = safeLoad('USED_rss_feeds');\nlet runCount = parseInt(gd['RUN_count'] || '0') + 1;\ngd['RUN_count'] = String(runCount);\n\nconst RSS_FEEDS = [\n  // BBC Sport\n  'https://feeds.bbci.co.uk/sport/rss.xml',\n  'https://feeds.bbci.co.uk/sport/football/rss.xml',\n  'https://feeds.bbci.co.uk/sport/cricket/rss.xml',\n  'https://feeds.bbci.co.uk/sport/tennis/rss.xml',\n  'https://feeds.bbci.co.uk/sport/golf/rss.xml',\n  'https://feeds.bbci.co.uk/sport/formula1/rss.xml',\n  'https://feeds.bbci.co.uk/sport/boxing/rss.xml',\n  'https://feeds.bbci.co.uk/sport/rugby-union/rss.xml',\n  // The Guardian\n  'https://www.theguardian.com/sport/rss',\n  'https://www.theguardian.com/football/rss',\n  'https://www.theguardian.com/sport/cricket/rss',\n  'https://www.theguardian.com/sport/tennis/rss',\n  'https://www.theguardian.com/sport/formulaone/rss',\n  'https://www.theguardian.com/sport/golf/rss',\n  'https://www.theguardian.com/sport/rugby-union/rss',\n  // CBS Sports\n  'https://www.cbssports.com/rss/headlines/',\n  'https://www.cbssports.com/rss/headlines/nfl/',\n  'https://www.cbssports.com/rss/headlines/nba/',\n  'https://www.cbssports.com/rss/headlines/soccer/',\n  'https://www.cbssports.com/rss/headlines/nhl/',\n  'https://www.cbssports.com/rss/headlines/mlb/',\n  // ESPN\n  'https://www.espn.com/espn/rss/news',\n  'https://www.espn.com/espn/rss/nfl/news',\n  'https://www.espn.com/espn/rss/nba/news',\n  'https://www.espn.com/espn/rss/nhl/news',\n  'https://www.espn.com/espn/rss/mlb/news',\n  // Bleacher Report\n  'https://syndication.bleacherreport.com/streams/nba.rss',\n  'https://syndication.bleacherreport.com/streams/nfl.rss',\n  'https://syndication.bleacherreport.com/streams/soccer.rss',\n  // Sky Sports\n  'https://www.skysports.com/rss/12040',\n  'https://www.skysports.com/rss/12433',\n  'https://www.skysports.com/rss/11095',\n  'https://www.skysports.com/rss/11902',\n  // Soccer\n  'https://www.goal.com/feeds/en/news',\n  'https://www.90min.com/feeds/latest.rss',\n  'https://www.football365.com/feed',\n  // Cricket\n  'https://www.crictracker.com/feed/',\n  'https://www.wisden.com/feed',\n  'https://timesofindia.indiatimes.com/rssfeeds/4719148.cms',\n  // Others\n  'https://hoopshype.com/feed/',\n  'https://www.theringer.com/rss/nfl.xml',\n  'https://www.theringer.com/rss/nba.xml',\n  'https://profootballtalk.nbcsports.com/feed/',\n  'https://www.racefans.net/feed/',\n  'https://planetf1.com/feed/',\n  'https://www.golfweek.com/feed/',\n  'https://www.mmajunkie.com/feed',\n  'https://mmafighting.com/rss/current',\n  'https://www.rugbypass.com/feed/'\n];\n\nfunction shuffle(arr) {\n  const a = [...arr];\n  for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }\n  return a;\n}\n\nlet available = RSS_FEEDS.filter(f => !usedFeeds.includes(f));\nif (available.length < 5) { usedFeeds = []; available = [...RSS_FEEDS]; }\n\nconst selected = shuffle(available)[0];\nusedFeeds.push(selected);\nif (usedFeeds.length > 20) usedFeeds = usedFeeds.slice(-20);\ngd['USED_rss_feeds'] = JSON.stringify(usedFeeds);\n\nconsole.log('Run #' + runCount + ' | \ud83d\udce1 RSS: ' + selected);\nreturn [{ json: { feedUrl: selected, runCount } }];"
+      },
+      "id": "pick-rss-feed",
+      "name": "Pick RSS Feed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5936,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.feedUrl }}",
+        "options": {}
+      },
+      "id": "fetch-rss",
+      "name": "Fetch RSS Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -5712,
+        656
+      ],
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pick best unique sports topic from RSS + extract ALL images with attribution\nconst items = $input.all();\nconst gd = $getWorkflowStaticData('global');\nfunction safeLoad(k) { try { return JSON.parse(gd[k] || '[]'); } catch(e) { return []; } }\nconst EX_titles = safeLoad('EX_titles');\nconst EX_urls   = safeLoad('EX_urls');\nconst feedUrl   = $('Pick RSS Feed').first().json.feedUrl || '';\n\n// Determine source name from feed URL\nconst SOURCE_NAMES = {\n  'bbci.co.uk': 'BBC Sport',\n  'theguardian.com': 'The Guardian',\n  'cbssports.com': 'CBS Sports',\n  'espn.com': 'ESPN',\n  'bleacherreport.com': 'Bleacher Report',\n  'skysports.com': 'Sky Sports',\n  'goal.com': 'Goal.com',\n  '90min.com': '90min',\n  'football365.com': 'Football365',\n  'crictracker.com': 'CricTracker',\n  'wisden.com': 'Wisden',\n  'timesofindia.indiatimes.com': 'Times of India',\n  'hoopshype.com': 'HoopsHype',\n  'theringer.com': 'The Ringer',\n  'nbcsports.com': 'NBC Sports',\n  'racefans.net': 'RaceFans',\n  'planetf1.com': 'PlanetF1',\n  'golfweek.com': 'Golfweek',\n  'mmajunkie.com': 'MMA Junkie',\n  'mmafighting.com': 'MMA Fighting',\n  'rugbypass.com': 'RugbyPass'\n};\nfunction getSourceName(url) {\n  for (const [domain, name] of Object.entries(SOURCE_NAMES)) {\n    if (url && url.includes(domain)) return name;\n  }\n  return 'Sports News';\n}\nconst sourceName = getSourceName(feedUrl);\n\nconst SPORT_KW = ['football','soccer','cricket','tennis','basketball','nba','nfl',\n  'formula','f1','premier league','golf','rugby','boxing','olympics','baseball',\n  'hockey','sport','match','tournament','championship','league','cup','race',\n  'transfer','goal','wimbledon','fifa','ipl','t20','grand slam','ufc','mma','mlb','nhl'];\nfunction isSports(text) { return SPORT_KW.some(kw => (text||'').toLowerCase().includes(kw)); }\n\nconst STOP = new Set(['the','and','for','are','but','not','with','from','this','that','they','have','been','will','your','which','news','today','latest']);\nfunction kwWords(t) { return (t||'').toLowerCase().replace(/[^a-z0-9\\s]/g,' ').trim().split(' ').filter(w => w.length > 3 && !STOP.has(w)); }\nfunction isDup(a, b) { const wa = kwWords(a), wb = new Set(kwWords(b)); if (!wa.length) return false; return wa.filter(w => wb.has(w)).length / wa.length > 0.45; }\n\n// Extract image from RSS item \u2014 check all possible fields\nfunction extractImage(d) {\n  // Try every possible RSS image field\n  const candidates = [\n    d['media:content']?.['$']?.url,\n    d['media:content']?.url,\n    d['media:thumbnail']?.['$']?.url,\n    d['media:thumbnail']?.url,\n    d.enclosure?.url,\n    d.image?.url,\n    d.image,\n    d['itunes:image']?.['$']?.href,\n  ].filter(u => u && typeof u === 'string' && u.startsWith('http') && u.length > 15);\n\n  // Also try content/description for <img> tags\n  const desc = d.content || d['content:encoded'] || d.description || d.summary || '';\n  if (typeof desc === 'string') {\n    const imgMatch = desc.match(/<img[^>]+src=[\"']([^\"']+)[\"']/i);\n    if (imgMatch && imgMatch[1] && imgMatch[1].startsWith('http')) candidates.push(imgMatch[1]);\n  }\n\n  // Filter out tracking pixels and tiny images\n  const good = candidates.find(u =>\n    !u.includes('pixel') && !u.includes('1x1') && !u.includes('tracking') &&\n    !u.includes('spacer') && !u.includes('transparent') && u.length > 20\n  );\n  return good || '';\n}\n\nconst candidates = [];\nfor (const item of items) {\n  const d = item.json || {};\n  const title = d.title || d.name || '';\n  const link  = d.link  || d.url  || d.guid || '';\n  const image = extractImage(d);\n  const pubDate     = d.pubDate || d.isoDate || d.published || '';\n  const description = d.contentSnippet || d.content || d.description || d.summary || '';\n  const author      = d.author || d['dc:creator'] || d.creator || sourceName;\n\n  if (!title || title.length < 15) continue;\n  if (!isSports(title + ' ' + description)) continue;\n  if (link && EX_urls.includes(link)) continue;\n  if (EX_titles.some(et => isDup(title, et))) { console.log('Dup: ' + title.substring(0,50)); continue; }\n\n  candidates.push({ title, link, image, description, pubDate, author, sourceName });\n}\n\nconsole.log('\ud83d\udcf0 Candidates: ' + candidates.length + ' | Feed: ' + sourceName);\n\nif (candidates.length === 0) {\n  // Structured fallback topics\n  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];\n  const mon = months[new Date().getMonth()]; const yr = new Date().getFullYear();\n  const rc  = parseInt($('Pick RSS Feed').first().json.runCount || '1');\n  const FALLBACKS = [\n    { title: 'Premier League ' + yr + ' Season Analysis: Top Scorers and Standings', description: 'Complete Premier League ' + yr + ' season analysis covering top scorers, standings, key matches and title race predictions.' },\n    { title: 'NBA ' + yr + ' Playoffs Race: Standings and Key Matchups', description: 'NBA ' + yr + ' playoffs race update with current standings, team form and predicted first-round matchups.' },\n    { title: 'IPL ' + yr + ' Tournament: Team Previews and Predictions', description: 'IPL ' + yr + ' complete tournament preview covering all teams, key players, schedules and expert predictions.' },\n    { title: 'Wimbledon ' + yr + ': Top Contenders and Draw Analysis', description: 'Wimbledon ' + yr + ' preview covering top ATP and WTA contenders, draw analysis and tournament predictions.' },\n    { title: 'NFL ' + yr + ' Season Preview: Key Storylines and Predictions', description: 'NFL ' + yr + ' season preview with key storylines, team analysis, player predictions and Super Bowl favorites.' },\n    { title: 'Formula 1 ' + yr + ' Championship: Drivers and Constructors Standings', description: 'Formula 1 ' + yr + ' championship standings update covering drivers, constructors and upcoming race calendar.' }\n  ];\n  const fb = FALLBACKS[rc % FALLBACKS.length];\n  console.log('\u26a0\ufe0f Fallback: ' + fb.title);\n  return [{ json: { title: fb.title, link: '', image: '', description: fb.description, pubDate: new Date().toISOString(), author: '', sourceName: 'YourSportsNation Editorial', allImages: [], hasImages: false } }];\n}\n\n// Sort by newest first\ncandidates.sort((a,b) => {\n  const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;\n  const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;\n  return db - da;\n});\n\n// Collect up to 3 unique images from top candidates for inline use\nconst imagePool = [];\nfor (const c of candidates.slice(0, 15)) {\n  if (imagePool.length >= 3) break;\n  if (c.image && c.image.length > 10) {\n    imagePool.push({ url: c.image, author: c.author, sourceName: c.sourceName, sourceUrl: c.link });\n  }\n}\n\nconst chosen = candidates[0];\nconsole.log('\ud83c\udfaf Topic: ' + chosen.title);\nconsole.log('\ud83d\uddbc\ufe0f Images collected: ' + imagePool.length);\n\nreturn [{ json: {\n  ...chosen,\n  allImages: imagePool,\n  hasImages: imagePool.length > 0\n} }];"
+      },
+      "id": "pick-topic",
+      "name": "Pick Topic + Collect Images",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5488,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fetch OG images from article pages for items that had no RSS image\n// This runs ONLY if we have fewer than 3 images so far\nconst inp = $json;\nconst existingImages = inp.allImages || [];\n\nif (existingImages.length >= 3) {\n  console.log('Already have ' + existingImages.length + ' images \u2014 skip OG fetch');\n  return [{ json: inp }];\n}\n\n// Try to fetch OG image from the article link itself\nasync function fetchOgImage(url, sourceName, author, sourceUrl) {\n  if (!url || !url.startsWith('http')) return null;\n  // Skip sites that block scrapers\n  const blocked = ['yahoo.com', 'espn.com', 'nfl.com', 'nba.com', 'paywall'];\n  if (blocked.some(d => url.includes(d))) return null;\n  try {\n    const r = await $http.get(url, {\n      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', 'Accept': 'text/html,*/*' },\n      timeout: 10000\n    });\n    const html = r.data || r.body || '';\n    if (typeof html !== 'string') return null;\n    const og = html.match(/<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i)\n            || html.match(/<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']/i);\n    if (og && og[1] && og[1].startsWith('http') && !og[1].includes('pixel')) {\n      return { url: og[1], author, sourceName, sourceUrl };\n    }\n    const tw = html.match(/<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i)\n             || html.match(/<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+name=[\"']twitter:image[\"']/i);\n    if (tw && tw[1] && tw[1].startsWith('http') && !tw[1].includes('pixel')) {\n      return { url: tw[1], author, sourceName, sourceUrl };\n    }\n  } catch(e) {}\n  return null;\n}\n\nconst enriched = [...existingImages];\nif (enriched.length < 3 && inp.link) {\n  console.log('Fetching OG image from: ' + inp.link.substring(0, 60));\n  const og = await fetchOgImage(inp.link, inp.sourceName, inp.author, inp.link);\n  if (og) { enriched.push(og); console.log('  \u2705 OG image found: ' + og.url.substring(0,60)); }\n}\n\nconsole.log('Total images after OG fetch: ' + enriched.length);\nreturn [{ json: { ...inp, allImages: enriched, hasImages: enriched.length > 0 } }];"
+      },
+      "id": "fetch-og-images",
+      "name": "Fetch OG Images (Fallback)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5264,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Mistral article rewrite request\n// Strictly HTML only \u2014 no markdown, no fake content\nconst inp = $json;\nconst gd = $getWorkflowStaticData('global');\nfunction safeLoad(k) { try { return JSON.parse(gd[k] || '[]'); } catch(e) { return []; } }\nconst EX_titles = safeLoad('EX_titles');\nconst recentTitles = EX_titles.slice(-15).join('\\n');\n\nconst topicTitle   = inp.title || 'Sports News Today';\nconst topicContext = (inp.description || '').substring(0, 600);\nconst source       = inp.sourceName || 'Sports Feed';\n\nconst systemPrompt = `You are an expert sports journalist and SEO content writer for YourSportsNation.com.\n\nLANGUAGE: Write EXCLUSIVELY in professional English sports journalism.\nTOPIC: Rewrite the provided sports news story \u2014 Football, NFL, NBA, Cricket, Tennis, MLB, F1, Golf, Boxing, Rugby, Olympics.\nACCURACY: Use ONLY real facts, real player names, real teams from the provided headline and context. Do NOT invent fictional players, teams or events.\n\nALREADY PUBLISHED \u2014 DO NOT REPEAT these topics:\n${recentTitles || 'None yet'}\n\nSEO REQUIREMENTS:\n- Title: 55-65 characters, main keyword first, no clickbait\n- Meta Description: 145-155 characters with main keyword and call-to-action\n- Keywords: 6 specific sports long-tail keywords\n- Slug: lowercase hyphens only, max 6 words\n- Article: minimum 1000 words\n\nSTRICT HTML RULES \u2014 CRITICAL \u2014 violations will break the website:\n- Output ONLY valid HTML inside <article>...</article>\n- ZERO markdown \u2014 no **bold**, no *italic*, no ## headings, no - bullet points\n- Use <strong>text</strong> for bold (NEVER **text**)\n- Use <em>text</em> for italic (NEVER *text*)\n- Use <ul><li>item</li></ul> for lists\n- Every <p> must close with </p>\n- Every <h2> must close with </h2>\n- Every <h3> must close with </h3>\n- NO <h1> tags ever\n- NO unclosed tags\n\nARTICLE STRUCTURE:\n<article>\n<p>[3-4 sentence intro. Hook the reader. Include main keyword in first sentence.]</p>\n<h2>[Breaking News and Key Facts]</h2>\n<p>[Min 160 words. Real facts, real stats, real players, dates, scores.]</p>\n<h2>[Background and Full Context]</h2>\n<p>[Min 160 words. History, previous results, season context.]</p>\n<h2>[Expert Analysis and Impact]</h2>\n<p>[Min 160 words. What this means, ranking impact, predictions.]</p>\n<h2>[Reactions and Views]</h2>\n<p>[Min 130 words. Expert opinions, fan reactions, perspectives.]</p>\n<h2>[What to Watch Next]</h2>\n<p>[Min 110 words. Upcoming fixtures, key dates, what fans should follow.]</p>\n<h2>Frequently Asked Questions</h2>\n<h3>[Specific question about this story?]</h3><p>[Min 65 words answer]</p>\n<h3>[Another relevant question?]</h3><p>[Min 65 words answer]</p>\n<h3>[Third question fans would ask?]</h3><p>[Min 65 words answer]</p>\n<h2>Final Thoughts</h2>\n<p>[Strong conclusion. Repeat main keyword. Encourage reader engagement.]</p>\n</article>\n\nOUTPUT: Pure JSON only. No backticks. No text before or after.\n{\"title\":\"...\",\"slug\":\"...\",\"metaDescription\":\"...\",\"keywords\":[\"k1\",\"k2\",\"k3\",\"k4\",\"k5\",\"k6\"],\"articleHTML\":\"<article>...</article>\",\"sport\":\"nfl|nba|soccer|cricket|tennis|mlb|formula1|golf|boxing|rugby|general\"}`;\n\nconst body = {\n  model: 'mistral-small-latest',\n  messages: [\n    { role: 'system', content: systemPrompt },\n    { role: 'user', content: 'Rewrite this sports news story as a full SEO article.\\n\\nOriginal headline: \"' + topicTitle + '\"\\n' + (topicContext ? 'Context: ' + topicContext : '') + '\\nOriginal source: ' + source + '\\n\\nIMPORTANT: Write 100% original professional content. Use real facts only. Pure HTML output \u2014 zero markdown.' }\n  ],\n  max_tokens: 9000,\n  temperature: 0.68,\n  response_format: { type: 'json_object' }\n};\n\nreturn [{ json: { ...inp, _mistralBody: body } }];"
+      },
+      "id": "build-content-request",
+      "name": "Build Article Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5040,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 5CBiPcUqdfEAdodoyDY71jM6yyfwKk0S"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json._mistralBody) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "mistral-write",
+      "name": "Mistral \u2014 Rewrite Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4816,
+        656
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 12000,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Mistral response + strip ALL markdown + fix HTML\nconst upstream = $('Build Article Request').first().json;\nconst resp = $json;\n\nlet parsed = {}, ok = false;\ntry {\n  const raw = resp.choices?.[0]?.message?.content || '';\n  if (!raw || raw.trim().length < 100) {\n    console.log('Empty Mistral response: ' + JSON.stringify(resp).substring(0,200));\n    return [{ json: { ...upstream, _contentOK: false, _failReason: 'empty_response' } }];\n  }\n  const clean = raw.replace(/^```json\\s*/i,'').replace(/^```\\s*/i,'').replace(/\\s*```$/,'').trim();\n  try { parsed = JSON.parse(clean); ok = true; }\n  catch(e1) { const m = clean.match(/\\{[\\s\\S]*\\}/); if (m) try { parsed = JSON.parse(m[0]); ok = true; } catch(e2) { console.log('JSON parse fail: ' + e2.message); } }\n} catch(e) { console.log('Outer parse err: ' + e.message); }\n\nif (!ok || !parsed.articleHTML || parsed.articleHTML.length < 400) {\n  console.log('Bad content \u2014 ok:' + ok + ' len:' + (parsed.articleHTML||'').length);\n  return [{ json: { ...upstream, _contentOK: false, _failReason: 'bad_html' } }];\n}\n\n// \u2500\u2500 FULL MARKDOWN \u2192 HTML CONVERTER + SANITIZER \u2500\u2500\nlet html = parsed.articleHTML;\n\n// 1. Convert markdown bold/italic \u2192 HTML\nhtml = html.replace(/\\*\\*\\*(.+?)\\*\\*\\*/gs, '<strong><em>$1</em></strong>');\nhtml = html.replace(/\\*\\*(.+?)\\*\\*/gs, '<strong>$1</strong>');\nhtml = html.replace(/\\*([^\\n*]+?)\\*/g, '<em>$1</em>');\nhtml = html.replace(/__(.+?)__/gs, '<strong>$1</strong>');\nhtml = html.replace(/_([^\\n_]+?)_/g, '<em>$1</em>');\n\n// 2. Convert markdown headings \u2192 HTML\nhtml = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');\nhtml = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');\nhtml = html.replace(/^# (.+)$/gm, '<h2>$1</h2>');\n\n// 3. Convert markdown lists\nhtml = html.replace(/^[-*] (.+)$/gm, '<li>$1</li>');\nhtml = html.replace(/(<li>[\\s\\S]*?<\\/li>\\s*)+/g, m => '<ul>' + m.trim() + '</ul>');\n\n// 4. Fix unclosed tags\nhtml = html.replace(/<\\/p(\\s)/gi, '</p>$1');\nhtml = html.replace(/<\\/p$/gim, '</p>');\nhtml = html.replace(/<\\/(h[1-6])(\\s)/gi, '</$1>$2');\n\n// 5. Ensure article wrapper\nif (!html.trimStart().startsWith('<article>')) html = '<article>' + html;\nif (!html.trimEnd().endsWith('</article>')) html = html + '</article>';\n\nconsole.log('\u2705 Article OK: ' + (parsed.title||'').substring(0,65));\nconsole.log('\ud83d\udccf HTML: ' + html.length + ' chars | Sport: ' + (parsed.sport||'general'));\n\nreturn [{ json: {\n  ...upstream,\n  _contentOK: true,\n  generatedTitle:       parsed.title       || upstream.title,\n  generatedSlug:        parsed.slug        || '',\n  generatedMeta:        parsed.metaDescription || '',\n  generatedKeywords:    parsed.keywords    || [],\n  generatedArticleHTML: html,\n  generatedSport:       parsed.sport       || 'general'\n} }];"
+      },
+      "id": "parse-response",
+      "name": "Parse Article Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4592,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json._contentOK }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "content-ok",
+      "name": "Content OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -4368,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Download first RSS image as binary for WP upload\nconst inp = $json;\nconst images = inp.allImages || [];\nconst firstImg = images[0];\n\nif (!firstImg || !firstImg.url || !firstImg.url.startsWith('http')) {\n  console.log('No image to download');\n  return [{ json: { ...inp, _imageDownloaded: false, _imgIndex: 0 } }];\n}\n\nconsole.log('\u2b07\ufe0f Downloading image 1: ' + firstImg.url.substring(0,70));\nreturn [{ json: { ...inp, _currentImageUrl: firstImg.url, _imgIndex: 0, _imageDownloaded: true } }];"
+      },
+      "id": "prep-img-download",
+      "name": "Prep Image Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4144,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json._currentImageUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+            },
+            {
+              "name": "Accept",
+              "value": "image/jpeg,image/png,image/webp,image/*,*/*"
+            },
+            {
+              "name": "Referer",
+              "value": "https://www.google.com/"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "imageData"
+            }
+          },
+          "timeout": 25000
+        }
+      },
+      "id": "download-img",
+      "name": "Download Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3920,
+        560
+      ],
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://yoursportsnation.com/wp-json/wp/v2/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic ZGV2OnVvNHljQzBtMjNqdjUxN1EwWXlrV2w1eA=="
+            },
+            {
+              "name": "Content-Disposition",
+              "value": "={{ 'attachment; filename=\"sports-img-' + Date.now() + '.jpg\"' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "imageData",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "upload-img-wp",
+      "name": "Upload Image to WP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3696,
+        560
+      ],
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect uploaded WP media ID\nconst content = $('Parse Article Response').first().json;\nconst wpMedia  = $('Upload Image to WP').first().json;\n\nlet featuredMediaId = 0;\nlet featuredWpUrl   = '';\n\nif (wpMedia && wpMedia.id && !isNaN(parseInt(wpMedia.id))) {\n  featuredMediaId = parseInt(wpMedia.id);\n  featuredWpUrl   = wpMedia.source_url || wpMedia.guid?.rendered || '';\n  console.log('\u2705 Featured image uploaded. WP ID: ' + featuredMediaId);\n} else {\n  console.log('\u26a0\ufe0f Featured image upload failed \u2014 will publish without featured image');\n}\n\nreturn [{ json: {\n  ...content,\n  _featuredMediaId: featuredMediaId,\n  _featuredWpUrl:   featuredWpUrl\n} }];"
+      },
+      "id": "merge-img-result",
+      "name": "Merge Image Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3472,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// BUILD FINAL WP POST\n// - Inline images at correct h2 positions with proper attribution\n// - Copyright disclaimer at bottom\n// - Correct WP categories\n// - Unique slug with timestamp\nconst inp = $json;\nconst gd = $getWorkflowStaticData('global');\nfunction safeLoad(k) { try { return JSON.parse(gd[k] || '[]'); } catch(e) { return []; } }\n\n// Duplicate check\nconst EX_titles = safeLoad('EX_titles');\nconst genTitle  = (inp.generatedTitle || inp.title || '').toLowerCase();\nconst STOP = new Set(['the','and','for','are','but','not','with','from','this','that','they','have','been','will','your','which','news','today','latest','about']);\nfunction kwW(t) { return t.toLowerCase().replace(/[^a-z0-9\\s]/g,' ').split(' ').filter(w=>w.length>3&&!STOP.has(w)); }\nfunction isDup(a,b) { const wa=kwW(a),wb=new Set(kwW(b)); return wa.length&&wa.filter(w=>wb.has(w)).length/wa.length>0.5; }\n\nif (EX_titles.some(t => isDup(genTitle, t))) {\n  console.log('\ud83d\udeab DUPLICATE \u2014 skipping: ' + genTitle.substring(0,60));\n  return [{ json: { _postBody: null, _isDuplicate: true, _topicTitle: inp.generatedTitle, _topicSlug: '', _topicUrl: inp.link||'' } }];\n}\n\nconst title       = inp.generatedTitle || inp.title || 'Sports News';\nconst articleHTML = inp.generatedArticleHTML || '';\nconst meta        = inp.generatedMeta || '';\nconst keywords    = inp.generatedKeywords || [];\nconst allImages   = inp.allImages || [];\nconst featuredMediaId = inp._featuredMediaId || 0;\nconst featuredWpUrl   = inp._featuredWpUrl || '';\n\n// \u2500\u2500 INLINE IMAGE FIGURE BUILDER with attribution \u2500\u2500\nfunction makeFig(imageObj, altText) {\n  if (!imageObj || !imageObj.url || imageObj.url.length < 10) return '';\n  const alt  = (altText || title).replace(/[\"<>&]/g, '').substring(0, 120);\n  const sn   = imageObj.sourceName || 'Sports News';\n  const au   = imageObj.author || sn;\n  const su   = imageObj.sourceUrl || inp.link || '';\n\n  // Attribution credit line \u2014 just like newspapers do it\n  const credit = su\n    ? `Photo credit: <a href=\"${su}\" rel=\"nofollow noopener\" target=\"_blank\">${sn}</a>${au && au !== sn ? ' / ' + au : ''}`\n    : `Photo credit: ${sn}${au && au !== sn ? ' / ' + au : ''}`;\n\n  return `\\n<figure class=\"wp-block-image size-large\" style=\"margin:32px 0 24px;\">` +\n    `<img src=\"${imageObj.url}\" alt=\"${alt}\" loading=\"lazy\" ` +\n    `style=\"width:100%;height:auto;max-width:1200px;display:block;margin:0 auto;border-radius:6px;box-shadow:0 2px 12px rgba(0,0,0,0.12);\" />` +\n    `<figcaption style=\"text-align:center;font-size:12px;color:#888;margin-top:6px;font-style:italic;\">${credit}</figcaption>` +\n    `</figure>\\n`;\n}\n\n// Find good insert position after a h2 section (after last </p> before next <h2>)\nfunction insertAfterSection(html, h2EndPos) {\n  const nextH2 = html.indexOf('<h2', h2EndPos);\n  const secEnd = nextH2 !== -1 ? nextH2 : html.length;\n  const section = html.substring(h2EndPos, secEnd);\n  const lastP = section.lastIndexOf('</p>');\n  return lastP !== -1 ? h2EndPos + lastP + 4 : h2EndPos;\n}\n\n// Collect h2 end positions\nconst h2Ends = [];\nconst h2Re = /<\\/h2>/gi; let match;\nwhile ((match = h2Re.exec(articleHTML)) !== null) h2Ends.push(match.index + match[0].length);\nconsole.log('H2 sections: ' + h2Ends.length + ' | Images available: ' + allImages.length);\n\nlet finalHTML = articleHTML;\n\n// Insert image 1 \u2014 after 2nd h2 (index 1)\nif (allImages[0] && h2Ends.length >= 2) {\n  const pos = insertAfterSection(finalHTML, h2Ends[1]);\n  // Get the h2 text for better alt text\n  const h2TextMatch = finalHTML.substring(h2Ends[1]-200, h2Ends[1]).match(/<h2[^>]*>([^<]+)<\\/h2>\\s*$/);\n  const h2Alt = h2TextMatch ? h2TextMatch[1].trim() : title;\n  const fig = makeFig(allImages[0], h2Alt);\n  if (fig) {\n    finalHTML = finalHTML.substring(0, pos) + fig + finalHTML.substring(pos);\n    console.log('\u2705 Image 1 inserted after h2[1]');\n  }\n}\n\n// Insert image 2 \u2014 after 4th h2 (index 3) if available\nif (allImages[1] && h2Ends.length >= 4) {\n  // Recompute h2Ends after first insertion\n  const h2Ends2 = [];\n  const h2Re2 = /<\\/h2>/gi; let m2;\n  while ((m2 = h2Re2.exec(finalHTML)) !== null) h2Ends2.push(m2.index + m2[0].length);\n  if (h2Ends2[3]) {\n    const pos2 = insertAfterSection(finalHTML, h2Ends2[3]);\n    const fig2 = makeFig(allImages[1], title);\n    if (fig2) {\n      finalHTML = finalHTML.substring(0, pos2) + fig2 + finalHTML.substring(pos2);\n      console.log('\u2705 Image 2 inserted after h2[3]');\n    }\n  }\n}\n\n// Insert image 3 \u2014 before </article> closing if available\nif (allImages[2]) {\n  const fig3 = makeFig(allImages[2], title);\n  if (fig3) {\n    const closePos = finalHTML.lastIndexOf('</article>');\n    if (closePos !== -1) {\n      finalHTML = finalHTML.substring(0, closePos) + fig3 + finalHTML.substring(closePos);\n    } else {\n      finalHTML += fig3;\n    }\n    console.log('\u2705 Image 3 inserted before </article>');\n  }\n}\n\n// Source attribution badge\nif (inp.link) {\n  const srcBadge = `<p style=\"font-size:12px;color:#999;border-top:1px solid #eee;margin-top:20px;padding-top:10px;\">\ud83d\udce1 Original source: <a href=\"${inp.link}\" rel=\"nofollow noopener\" target=\"_blank\">${inp.sourceName || 'Sports Feed'}</a></p>`;\n  finalHTML = finalHTML.includes('</article>') ? finalHTML.replace('</article>', srcBadge + '</article>') : finalHTML + srcBadge;\n}\n\n// Copyright + attribution disclaimer at bottom of every article\nconst disclaimer = `\n<div style=\"background:#f9f9f9;border-left:4px solid #0073aa;padding:16px 20px;margin-top:28px;font-size:12px;color:#555;line-height:1.8;border-radius:0 6px 6px 0;\">\n<strong>\ud83d\udccc Image Attribution &amp; Copyright Notice:</strong> All images used in this article are sourced from their original publishers and are attributed to the respective copyright holders. YourSportsNation.com does not claim ownership of any third-party images or content. Images are used under editorial fair use for news reporting purposes. If you are the original copyright owner of any image or content featured here and wish to have it removed or properly credited, please <a href=\"https://yoursportsnation.com/contact\" style=\"color:#0073aa;\">contact us</a> and we will respond promptly.\n</div>\n`;\nfinalHTML = finalHTML.includes('</article>') ? finalHTML.replace('</article>', disclaimer + '</article>') : finalHTML + disclaimer;\n\n// \u2500\u2500 AUTO CATEGORY (hardcoded WP IDs) \u2500\u2500\nconst titleLC   = title.toLowerCase();\nconst contentLC = articleHTML.substring(0, 800).toLowerCase();\nconst combined  = titleLC + ' ' + contentLC;\n\nlet wpCategoryId = 42; let catKey = 'sports';\nif (/\\bnfl\\b|american football|super bowl|touchdown|quarterback/.test(combined))               { wpCategoryId=40; catKey='nfl'; }\nelse if (/\\bnba\\b|basketball|lakers|celtics|knicks|bulls|lebron|curry/.test(combined))          { wpCategoryId=39; catKey='nba'; }\nelse if (/\\bcricket\\b|ipl|test match|\\bodi\\b|t20|wicket|batting|bcci/.test(combined))          { wpCategoryId=58; catKey='cricket'; }\nelse if (/\\btennis\\b|wimbledon|grand slam|\\batp\\b|\\bwta\\b|djokovic|federer|alcaraz/.test(combined)){ wpCategoryId=59; catKey='tennis'; }\nelse if (/\\bmlb\\b|baseball|home run|pitcher|yankees|dodgers/.test(combined))                   { wpCategoryId=60; catKey='mlb'; }\nelse if (/soccer|premier league|fifa|la liga|bundesliga|champions league|messi|ronaldo/.test(combined)){ wpCategoryId=41; catKey='soccer'; }\nelse if (/\\bf1\\b|formula.?1|grand prix|motorsport/.test(combined))                             { wpCategoryId=42; catKey='formula1'; }\nelse if (/\\brugby\\b|six nations|super rugby/.test(combined))                                   { wpCategoryId=42; catKey='rugby'; }\nelse if (/\\bgolf\\b|pga tour|ryder cup|masters/.test(combined))                                 { wpCategoryId=42; catKey='golf'; }\nelse if (/\\boxing\\b|ufc|\\bmma\\b|heavyweight/.test(combined))                                   { wpCategoryId=42; catKey='boxing'; }\nelse if (/\\bnhl\\b|hockey|stanley cup/.test(combined))                                          { wpCategoryId=42; catKey='nhl'; }\n\n// AUTO TAGS\nlet tagPostCount = parseInt(gd['TAG_postCount'] || '0') + 1;\ngd['TAG_postCount'] = String(tagPostCount);\nconst autoTags = [44]; // Headlines always\nif (catKey === 'nfl')    autoTags.push(46);\nif (catKey === 'nba')    autoTags.push(45);\nif (catKey === 'soccer') autoTags.push(48);\nconst isFeatured = (tagPostCount%4===0) || (tagPostCount%5===0) || (Math.random()<0.18 && tagPostCount>2);\nif (isFeatured) { autoTags.push(43); if (Math.random()<0.5) autoTags.push(47); console.log('\u2b50 FEATURED'); }\nelse if (Math.random()<0.25) autoTags.push(47);\nconst uniqueTags = [...new Set(autoTags)];\n\n// UNIQUE SLUG with timestamp to prevent conflicts\nlet baseSlug = inp.generatedSlug || '';\nif (!baseSlug || baseSlug.length < 3) {\n  baseSlug = title.toLowerCase().replace(/[^a-z0-9\\s-]/g,'').replace(/\\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').split('-').slice(0,5).join('-');\n}\nconst slug = baseSlug.split('-').slice(0, 5).join('-') + '-' + Date.now().toString().slice(-7);\n\nconst postBody = {\n  title:      title,\n  content:    finalHTML,\n  status:     'publish',\n  categories: [wpCategoryId],\n  tags:       uniqueTags,\n  excerpt:    meta,\n  slug:       slug,\n  meta: {\n    _yoast_wpseo_metadesc:   meta,\n    _yoast_wpseo_focuskw:    keywords[0] || '',\n    _yoast_wpseo_title:      title + ' | YourSportsNation',\n    rank_math_description:   meta,\n    rank_math_focus_keyword: keywords[0] || ''\n  }\n};\nif (featuredMediaId > 0) postBody.featured_media = featuredMediaId;\n\nconsole.log('\u2501\u2501\u2501 PUBLISHING \u2501\u2501\u2501');\nconsole.log('Title    : ' + title.substring(0, 65));\nconsole.log('Category : ' + catKey + ' (ID:' + wpCategoryId + ')');\nconsole.log('Tags     : ' + uniqueTags.join(','));\nconsole.log('Slug     : ' + slug);\nconsole.log('FeatImg  : ' + featuredMediaId);\nconsole.log('Inline   : ' + allImages.length + ' images');\n\nreturn [{ json: { _postBody: postBody, _topicSlug: slug, _topicTitle: title, _topicUrl: inp.link||'', _isDuplicate: false } }];"
+      },
+      "id": "build-wp-post",
+      "name": "Build WP Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3248,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://yoursportsnation.com/wp-json/wp/v2/posts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic ZGV2OnVvNHljQzBtMjNqdjUxN1EwWXlrV2w1eA=="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json._postBody) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "publish-wp",
+      "name": "Publish to WordPress",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3024,
+        560
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 8000,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Save to exclusion list + log success\nconst buildPost = $('Build WP Post').first().json;\nconst wpResp    = $json;\nconst gd = $getWorkflowStaticData('global');\nfunction safeLoad(k) { try { return JSON.parse(gd[k] || '[]'); } catch(e) { return []; } }\nlet EX_titles = safeLoad('EX_titles');\nlet EX_urls   = safeLoad('EX_urls');\n\nconst slug  = buildPost._topicSlug  || '';\nconst title = buildPost._topicTitle || '';\nconst url   = buildPost._topicUrl   || '';\n\nif (title) {\n  const norm = title.toLowerCase().replace(/[^a-z0-9\\s]/g,' ').replace(/\\s+/g,' ').trim();\n  if (norm && !EX_titles.includes(norm)) EX_titles.push(norm);\n}\nif (url && !EX_urls.includes(url)) EX_urls.push(url);\nif (slug && !EX_urls.includes(slug)) EX_urls.push(slug);\n\nif (EX_titles.length > 600) EX_titles = EX_titles.slice(-500);\nif (EX_urls.length   > 600) EX_urls   = EX_urls.slice(-500);\n\ngd['EX_titles'] = JSON.stringify(EX_titles);\ngd['EX_urls']   = JSON.stringify(EX_urls);\n\nconst postId  = wpResp.id   || 'unknown';\nconst postUrl = wpResp.link || '';\n\nconsole.log('\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550');\nconsole.log('\u2705 PUBLISHED SUCCESSFULLY');\nconsole.log('   ID    : ' + postId);\nconsole.log('   URL   : ' + postUrl);\nconsole.log('   Title : ' + title);\nconsole.log('\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550');\n\nreturn [{ json: { done: true, postId, postUrl, title, slug } }];"
+      },
+      "id": "save-exclusion",
+      "name": "Save to Exclusion List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2800,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log('\u23ed\ufe0f Stopped: content failed or duplicate \u2014 ' + ($json._failReason||'unknown'));\nreturn [{ json: { stopped: true, reason: $json._failReason||'content_failed' } }];"
+      },
+      "id": "stop-failed",
+      "name": "Stop (Failed)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4144,
+        752
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule 9AM": {
+      "main": [
+        [
+          {
+            "node": "Pick RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule 1PM": {
+      "main": [
+        [
+          {
+            "node": "Pick RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule 4PM": {
+      "main": [
+        [
+          {
+            "node": "Pick RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule 9PM": {
+      "main": [
+        [
+          {
+            "node": "Pick RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Pick Topic + Collect Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Topic + Collect Images": {
+      "main": [
+        [
+          {
+            "node": "Fetch OG Images (Fallback)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch OG Images (Fallback)": {
+      "main": [
+        [
+          {
+            "node": "Build Article Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Article Request": {
+      "main": [
+        [
+          {
+            "node": "Mistral \u2014 Rewrite Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral \u2014 Rewrite Article": {
+      "main": [
+        [
+          {
+            "node": "Parse Article Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Article Response": {
+      "main": [
+        [
+          {
+            "node": "Content OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content OK?": {
+      "main": [
+        [
+          {
+            "node": "Prep Image Download",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop (Failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Image Download": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Upload Image to WP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Image to WP": {
+      "main": [
+        [
+          {
+            "node": "Merge Image Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Image Result": {
+      "main": [
+        [
+          {
+            "node": "Build WP Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build WP Post": {
+      "main": [
+        [
+          {
+            "node": "Publish to WordPress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to WordPress": {
+      "main": [
+        [
+          {
+            "node": "Save to Exclusion List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "5af7ad2866852c02fc638d8ffbd1485c333230dc59115f7e35fce064fe973377"
+  },
+  "name": "YourSportsNation \u2014 AutoPilot v4 (RSS Only + Real Images)"
+}
